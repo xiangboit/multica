@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   AppConfigSchema,
+  LarkInstallationSchema,
+  ListLarkInstallationsResponseSchema,
+  EMPTY_LARK_INSTALLATION,
+  EMPTY_LIST_LARK_INSTALLATIONS_RESPONSE,
   WecomInstallationSchema,
   ListWecomInstallationsResponseSchema,
   RedeemWecomBindingTokenResponseSchema,
@@ -77,6 +81,39 @@ const baseIssue = {
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 };
+
+describe("Lark installation schemas", () => {
+  it("defaults a missing inbound access mode to workspace members", () => {
+    const parsed = LarkInstallationSchema.parse({ id: "i1", status: "active" });
+    expect(parsed.inbound_access_mode).toBe("workspace_members");
+  });
+
+  it("preserves an explicit Feishu guest access mode", () => {
+    const parsed = LarkInstallationSchema.parse({
+      id: "i1",
+      status: "active",
+      inbound_access_mode: "feishu_users",
+    });
+    expect(parsed.inbound_access_mode).toBe("feishu_users");
+  });
+
+  it("falls back to strict empty states for malformed endpoint responses", () => {
+    expect(
+      parseWithFallback(
+        null,
+        ListLarkInstallationsResponseSchema,
+        EMPTY_LIST_LARK_INSTALLATIONS_RESPONSE,
+        { endpoint: "GET /api/workspaces/:id/lark/installations" },
+      ),
+    ).toEqual(EMPTY_LIST_LARK_INSTALLATIONS_RESPONSE);
+
+    expect(
+      parseWithFallback(42, LarkInstallationSchema, EMPTY_LARK_INSTALLATION, {
+        endpoint: "PATCH /api/workspaces/:id/lark/installations/:installationId",
+      }),
+    ).toEqual(EMPTY_LARK_INSTALLATION);
+  });
+});
 
 describe("IssueSchema (via ListIssuesResponseSchema)", () => {
   it("accepts a primitive metadata KV map", () => {

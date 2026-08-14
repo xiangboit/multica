@@ -153,6 +153,8 @@ import type {
   ConnectVCSRequest,
   ConnectVCSResponse,
   ListLarkInstallationsResponse,
+  LarkInstallation,
+  LarkInboundAccessMode,
   BeginLarkInstallResponse,
   LarkInstallStatusResponse,
   RedeemLarkBindingTokenResponse,
@@ -311,6 +313,10 @@ import {
   EMPTY_LIST_DINGTALK_GROUP_ROUTES_RESPONSE,
   EMPTY_LIST_DINGTALK_INSTALLATIONS_RESPONSE,
   EMPTY_REDEEM_DINGTALK_BINDING_TOKEN_RESPONSE,
+  LarkInstallationSchema,
+  ListLarkInstallationsResponseSchema,
+  EMPTY_LARK_INSTALLATION,
+  EMPTY_LIST_LARK_INSTALLATIONS_RESPONSE,
   WecomInstallationSchema,
   ListWecomInstallationsResponseSchema,
   RedeemWecomBindingTokenResponseSchema,
@@ -3769,7 +3775,13 @@ export class ApiClient {
 
   // Lark integration
   async listLarkInstallations(workspaceId: string): Promise<ListLarkInstallationsResponse> {
-    return this.fetch(`/api/workspaces/${workspaceId}/lark/installations`);
+    const raw = await this.fetch<unknown>(`/api/workspaces/${workspaceId}/lark/installations`);
+    return parseWithFallback(
+      raw,
+      ListLarkInstallationsResponseSchema,
+      EMPTY_LIST_LARK_INSTALLATIONS_RESPONSE,
+      { endpoint: "GET /api/workspaces/:id/lark/installations" },
+    );
   }
 
   async beginLarkInstall(
@@ -3798,6 +3810,23 @@ export class ApiClient {
   async deleteLarkInstallation(workspaceId: string, installationId: string): Promise<void> {
     await this.fetch(`/api/workspaces/${workspaceId}/lark/installations/${installationId}`, {
       method: "DELETE",
+    });
+  }
+
+  async updateLarkInstallation(
+    workspaceId: string,
+    installationId: string,
+    body: { inbound_access_mode: LarkInboundAccessMode },
+  ): Promise<LarkInstallation> {
+    const raw = await this.fetch<unknown>(
+      `/api/workspaces/${workspaceId}/lark/installations/${installationId}`,
+      {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      },
+    );
+    return parseWithFallback(raw, LarkInstallationSchema, EMPTY_LARK_INSTALLATION, {
+      endpoint: "PATCH /api/workspaces/:id/lark/installations/:installationId",
     });
   }
 
